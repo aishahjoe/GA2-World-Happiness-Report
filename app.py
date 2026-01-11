@@ -206,7 +206,7 @@ with tab_model:
     title="Feature Importance (Descending Order)"
 )
 
-st.plotly_chart(fig_imp, use_container_width=True)
+    st.plotly_chart(fig_imp, use_container_width=True)
 
 
 

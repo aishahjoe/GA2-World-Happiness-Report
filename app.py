@@ -29,7 +29,7 @@ h1, h2, h3 { letter-spacing: 0.2px; }
 # --------------------------------------------------
 # Constants
 # --------------------------------------------------
-TARGET_COL = "Life evaluation (5-year average)"
+TARGET_COL = "Life evaluation (3-year average)"
 FEATURE_COLS = [
     "Explained by: Log GDP per capita",
     "Explained by: Social support",

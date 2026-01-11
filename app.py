@@ -65,65 +65,70 @@ def find_closest_by_profile(df, input_df):
 df = load_data(DEFAULT_CSV)
 model, (r2, rmse, mae), coef_df, results_df = train_model(df)
 
-# -------------------- Header --------------------
-st.title("🌍 World Happiness Prediction Dashboard")
-st.caption("Explore how policy indicators shape happiness scores (2020–2024)")
+# -------------------- Sidebar Navigation --------------------
+st.sidebar.title("📑 Navigation")
+page = st.sidebar.radio("Go to:", ["Overview", "Model", "Predict", "About"])
 
-# -------------------- Sliders --------------------
-st.subheader("🎛️ Adjust policy levers and predict happiness score")
-cols = st.columns(3)
-inputs = {}
-icons = ["💰", "❤️", "🏥", "🕊️", "🎁", "⚖️"]
+# -------------------- Pages --------------------
+if page == "Overview":
+    st.title("🌍 World Happiness Report (2020–2024)")
+    st.subheader("📊 Dataset Overview")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Rows", df.shape[0])
+    c2.metric("Columns", df.shape[1])
+    c3.metric("Years", f"{int(df['Year'].min())}–{int(df['Year'].max())}")
+    st.dataframe(df.head(12), use_container_width=True)
 
-for i, feat in enumerate(FEATURE_COLS):
-    with cols[i % 3]:
-        label = f"{icons[i]} {feat.replace('Explained by: ', '')}"
-        inputs[feat] = st.slider(label, float(df[feat].min()), float(df[feat].max()), float(df[feat].mean()))
-
-input_df = pd.DataFrame([inputs])
-pred = float(model.predict(input_df)[0])
-rank_est = (df[TARGET_COL] > pred).sum() + 1
-delta = pred - df[TARGET_COL].mean()
-
-# -------------------- KPI Card --------------------
-st.subheader("📈 Predicted Happiness Score")
-kpi = st.columns(3)
-kpi[0].metric("Score", f"{pred:.2f}")
-kpi[1].metric("Estimated Rank", f"{rank_est} / {df['Country name'].nunique()}")
-kpi[2].metric("vs Global Avg", f"{delta:+.2f}")
-
-# -------------------- Storytelling Panels --------------------
-st.subheader("🧭 Country Comparisons")
-by_score = find_closest_by_score(df, pred)
-by_profile = find_closest_by_profile(df, input_df)
-
-c1, c2 = st.columns(2)
-with c1:
-    st.markdown("**A) Closest by happiness score**")
-    st.dataframe(by_score, use_container_width=True)
-with c2:
-    st.markdown("**B) Closest by socioeconomic profile**")
-    st.dataframe(by_profile, use_container_width=True)
-
-top = by_score.iloc[0]
-st.info(f"✨ This score is most similar to **{top['Country name']} ({int(top['Year'])})**, with an actual score of **{top[TARGET_COL]:.2f}**.")
-
-# -------------------- World Map --------------------
-st.subheader("🗺️ Global Happiness Map")
-fig = px.choropleth(df, locations="Country name", locationmode="country names",
-                    color=TARGET_COL, color_continuous_scale="Viridis",
-                    title="Global Happiness Scores")
-st.plotly_chart(fig, use_container_width=True)
-
-# -------------------- Model Metrics --------------------
-with st.expander("📊 Model Performance"):
-    st.metric("R²", f"{r2:.3f}")
-    st.metric("RMSE", f"{rmse:.3f}")
-    st.metric("MAE", f"{mae:.3f}")
+elif page == "Model":
+    st.title("🧠 Model Performance")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("R²", f"{r2:.3f}")
+    m2.metric("RMSE", f"{rmse:.3f}")
+    m3.metric("MAE", f"{mae:.3f}")
+    st.subheader("Feature Importance")
     st.bar_chart(coef_df.set_index("Variable"))
+    st.subheader("Actual vs Predicted")
+    st.line_chart(results_df.reset_index(drop=True), use_container_width=True)
 
-# -------------------- About --------------------
-with st.expander("ℹ️ About This App"):
+elif page == "Predict":
+    st.title("🔮 Happiness Score Prediction")
+    st.write("Adjust indicators and click **Predict**.")
+    cols = st.columns(3)
+    inputs = {}
+    icons = ["💰", "❤️", "🏥", "🕊️", "🎁", "⚖️"]
+    for i, feat in enumerate(FEATURE_COLS):
+        with cols[i % 3]:
+            label = f"{icons[i]} {feat.replace('Explained by: ', '')}"
+            inputs[feat] = st.slider(label, float(df[feat].min()), float(df[feat].max()), float(df[feat].mean()))
+    input_df = pd.DataFrame([inputs])
+    pred = float(model.predict(input_df)[0])
+    rank_est = (df[TARGET_COL] > pred).sum() + 1
+    delta = pred - df[TARGET_COL].mean()
+    st.subheader("📈 Predicted Happiness Score")
+    kpi = st.columns(3)
+    kpi[0].metric("Score", f"{pred:.2f}")
+    kpi[1].metric("Estimated Rank", f"{rank_est} / {df['Country name'].nunique()}")
+    kpi[2].metric("vs Global Avg", f"{delta:+.2f}")
+    st.subheader("🧭 Country Comparisons")
+    by_score = find_closest_by_score(df, pred)
+    by_profile = find_closest_by_profile(df, input_df)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**A) Closest by happiness score**")
+        st.dataframe(by_score, use_container_width=True)
+    with c2:
+        st.markdown("**B) Closest by socioeconomic profile**")
+        st.dataframe(by_profile, use_container_width=True)
+    top = by_score.iloc[0]
+    st.info(f"✨ This score is most similar to **{top['Country name']} ({int(top['Year'])})**, with an actual score of **{top[TARGET_COL]:.2f}**.")
+    st.subheader("🗺️ Global Happiness Map")
+    fig = px.choropleth(df, locations="Country name", locationmode="country names",
+                        color=TARGET_COL, color_continuous_scale="Viridis",
+                        title="Global Happiness Scores")
+    st.plotly_chart(fig, use_container_width=True)
+
+elif page == "About":
+    st.title("ℹ️ About This Application")
     st.markdown("""
 **Course:** WQD7001 — Principles of Data Science (GA2)  
 **Dataset:** World Happiness Report (2020–2024)  

@@ -197,11 +197,18 @@ with tab_model:
 
     st.divider()
     st.subheader("Feature Importance (XGBoost)")
-    st.bar_chart(coef_df.set_index("Variable"))
 
-    st.divider()
-    st.subheader("Actual vs Predicted")
-    st.line_chart(results_df.reset_index(drop=True), use_container_width=True)
+fig_imp = px.bar(
+    coef_df.sort_values("Importance", ascending=True),  # ascending for horizontal
+    x="Importance",
+    y="Variable",
+    orientation="h",
+    title="Feature Importance (Descending Order)"
+)
+
+st.plotly_chart(fig_imp, use_container_width=True)
+
+
 
 # ==================================================
 # TAB 3 — ABOUT

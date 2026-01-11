@@ -198,7 +198,7 @@ with tab_model:
     st.divider()
     st.subheader("Feature Importance (XGBoost)")
 
-fig_imp = px.bar(
+    fig_imp = px.bar(
     coef_df.sort_values("Importance", ascending=True),  # ascending for horizontal
     x="Importance",
     y="Variable",

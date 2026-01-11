@@ -12,29 +12,24 @@ import plotly.express as px
 # --------------------------------------------------
 # Page Config & Styling
 # --------------------------------------------------
-st.set_page_config(
-    page_title="WHR GA2 – Happiness Dashboard",
-    layout="wide"
-)
+st.set_page_config(page_title="WHR GA2 – Happiness Dashboard", layout="wide")
 
 st.markdown("""
 <style>
-[data-testid="stTabs"] {
-    justify-content: flex-end;
-}
+[data-testid="stTabs"] { justify-content: flex-end; }
 [data-testid="stMetric"] {
     background: #f8f9fa;
     padding: 12px;
     border-radius: 12px;
 }
-h1, h2, h3 {letter-spacing: 0.2px;}
+h1, h2, h3 { letter-spacing: 0.2px; }
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
 # Constants
 # --------------------------------------------------
-TARGET_COL = "Life evaluation (3-year average)"
+TARGET_COL = "Life evaluation (5-year average)"
 FEATURE_COLS = [
     "Explained by: Log GDP per capita",
     "Explained by: Social support",
@@ -80,12 +75,7 @@ def train_model(df: pd.DataFrame):
         "Importance": model.feature_importances_
     }).sort_values("Importance", ascending=False)
 
-    results_df = pd.DataFrame({
-        "Actual": y_test.values,
-        "Predicted": y_pred
-    })
-
-    return model, (r2, rmse, mae), importance_df, results_df
+    return model, (r2, rmse, mae), importance_df
 
 
 def find_closest_by_score(df, pred_score):
@@ -109,7 +99,12 @@ def find_closest_by_profile(df, input_df):
 # Load Data & Train Model
 # --------------------------------------------------
 df = load_data(DEFAULT_CSV)
-model, (r2, rmse, mae), coef_df, results_df = train_model(df)
+model, (r2, rmse, mae), coef_df = train_model(df)
+
+# --------------------------------------------------
+# Precompute Country-Average Ranking
+# --------------------------------------------------
+country_avg = df.groupby("Country name")[TARGET_COL].mean()
 
 # --------------------------------------------------
 # Header
@@ -146,13 +141,16 @@ with tab_predict:
 
     input_df = pd.DataFrame([inputs])
     pred = float(model.predict(input_df)[0])
-    rank_est = (df[TARGET_COL] > pred).sum() + 1
-    delta = pred - df[TARGET_COL].mean()
+
+    # ---- Country-average ranking (FIXED) ----
+    rank_est = (country_avg > pred).sum() + 1
+    total_countries = country_avg.shape[0]
+    delta = pred - country_avg.mean()
 
     st.subheader("📈 Predicted Happiness Score")
     kpi = st.columns(3)
     kpi[0].metric("Score", f"{pred:.2f}")
-    kpi[1].metric("Estimated Rank", f"{rank_est} / {df['Country name'].nunique()}")
+    kpi[1].metric("Estimated Rank", f"{rank_est} / {total_countries}")
     kpi[2].metric("vs Global Avg", f"{delta:+.2f}")
 
     st.subheader("🧭 Country Comparisons")
@@ -199,16 +197,12 @@ with tab_model:
     st.subheader("Feature Importance (XGBoost)")
 
     fig_imp = px.bar(
-    coef_df.sort_values("Importance", ascending=True),  # ascending for horizontal
-    x="Importance",
-    y="Variable",
-    orientation="h",
-    title="Feature Importance (Descending Order)"
-)
-
+        coef_df.sort_values("Importance", ascending=True),
+        x="Importance",
+        y="Variable",
+        orientation="h"
+    )
     st.plotly_chart(fig_imp, use_container_width=True)
-
-
 
 # ==================================================
 # TAB 3 — ABOUT
@@ -222,7 +216,7 @@ with tab_about:
 **Model:** XGBoost Regressor  
 
 **Purpose**  
-This application supports scenario-based exploration of how economic, social,
+This dashboard enables scenario-based exploration of how economic, social,
 and governance factors influence national happiness levels.
 
 **Methodology**
